@@ -2,18 +2,27 @@
 
 _Updated 2026-09-13._
 
-> **2026-09-13 daily automation:** no open issues, no `routine-backlog` items,
-> no open PRs, CI green on master `627e98b`. Today's item was the small
-> follow-up flagged just below (2026-09-11 note) and left unfixed in #1476:
-> `agent/loop.py`'s three `# nosec B603,B607` comments in `_commit_step` were
-> not actually suppressing bandit's B603 finding, because bandit 1.9.4's
-> nosec-list regex only honours the last code in a comma-separated list.
-> Fixed with a bare `# nosec` (matching the existing correct convention in
-> `tests/test_changelog_check_workflow.py::_is_exempt`), reproduced directly
-> with `bandit==1.9.4` before/after, and covered by a new general regression
-> test. PR [#1484](https://github.com/strikersam/autonomous-ai-agency/pull/1484)
-> → `claude/upbeat-goodall-qhg1t5`. See tracker row 58. **Not yet merged as of
-> this update** — waiting on CI.
+> **2026-09-13 daily automation:** Added Gemini 3.x models (3.8-flash, 3.7-flash,
+> 3.5-flash-lite, 3.1-pro) to `config/llm/models.yaml` and `cost_tracker.py` —
+> all four were silently excluded from tool-calling requests due to missing catalog
+> entries. Also added Groq catalog entries for `kimi-k2-instruct` and `qwen-qwq-32b`
+> (same issue — in cost table, missing catalog). Fixed stale `deepseek-r1-70b`
+> reference in `CLAUDE.md` (deprecated from Groq self-serve Aug 2026). 36 tests,
+> PR [#1485](https://github.com/strikersam/autonomous-ai-agency/pull/1485) open,
+> subscribed for CI/review events.
+
+> **2026-09-13 daily automation (earlier the same day):** no open issues, no
+> `routine-backlog` items, no open PRs, CI green on master `627e98b`. Today's
+> item was the small follow-up flagged just below (2026-09-11 note) and left
+> unfixed in #1476: `agent/loop.py`'s three `# nosec B603,B607` comments in
+> `_commit_step` were not actually suppressing bandit's B603 finding, because
+> bandit 1.9.4's nosec-list regex only honours the last code in a
+> comma-separated list. Fixed with a bare `# nosec` (matching the existing
+> correct convention in `tests/test_changelog_check_workflow.py::_is_exempt`),
+> reproduced directly with `bandit==1.9.4` before/after, and covered by a new
+> general regression test. PR [#1484](https://github.com/strikersam/autonomous-ai-agency/pull/1484)
+> → `claude/upbeat-goodall-qhg1t5`. See tracker row 58. **Merged** to master
+> (squash `7d7243c`).
 
 _Prior update 2026-09-11:_
 
