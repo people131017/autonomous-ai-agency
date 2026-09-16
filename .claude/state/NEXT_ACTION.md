@@ -2,6 +2,33 @@
 
 _Updated 2026-09-16._
 
+> **2026-09-16 daily automation (this run):** One open PR at session start —
+> [#1516](https://github.com/strikersam/autonomous-ai-agency/pull/1516)
+> ("web_reach domain allow/block list", issue #1499 item 2) had been opened
+> by another run just minutes before this session started, already complete
+> (13 tests, changelog, risky-module-review done) with CI still in progress —
+> not duplicated (see that run's own note just below). `routine-backlog`
+> issue #1499 now has only item 4 left (MCP 2026-07-28 stateless-core
+> migration), explicitly rule-40-gated and not for autonomous pickup. With
+> the backlog otherwise spoken for, picked Bug Log #18 instead
+> (`.claude/state/active-tasks.md`, `BUG_FOUND` since 2026-07-22, never
+> fixed): `CompanyGraphPanel` in `KnowledgeScreen.jsx` re-validated the
+> persisted `COMPANY_ID_KEY` against `listCompanies()`'s default `limit=100`
+> page **unconditionally**, unlike `CompanyScreen.jsx` (PR #962), which only
+> does that when there is no stored ID at all. An admin/owner with >100
+> companies whose stored ID fell outside the first page got it wrongly
+> cleared and replaced with `list[0]`. Fixed by mirroring `CompanyScreen.jsx`'s
+> gating (`if (!selectedCompanyId && list.length > 0)`). 1 new regression
+> test (verified failing against the pre-fix condition first, rule 31); full
+> frontend suite 24/24 suites, 158/158 tests passing; `CI=true npm run build`
+> clean; `compileall` clean; changelog parity OK. PR
+> [#1517](https://github.com/strikersam/autonomous-ai-agency/pull/1517) →
+> `routine/daily-2026-09-16`, auto-merge armed, subscribed. **Update:** #1516
+> merged to master as `80bbb03` while this PR was open — merged master back
+> into this branch, resolving conflicts in `.claude/state/*` and
+> `graphify-out/GRAPH_REPORT.md` (no code conflicts). Issue #1499 can be
+> closed once this PR also merges (items 1-3 done, item 4 deferred to human).
+
 > **2026-09-16 daily automation:** One open `routine-backlog` issue (#1499) and
 > no open PRs at session start. Items 1 and 3 were already done (rows 61, 62);
 > item 4 (MCP 2026-07-28 stateless migration) is explicitly rule-40 gated —
