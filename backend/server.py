@@ -252,14 +252,23 @@ def _safe_object_id(value: Optional[str]) -> Optional[ObjectId]:
         return None
 
 
+def _doc_id_filter(doc_id: str) -> dict:
+    """Build an `_id` filter for an id that may not be a valid ObjectId.
+
+    SQLite-backed documents carry plain UUID string ids, so a bare
+    ``ObjectId(doc_id)`` raises there (and on any malformed id in Mongo mode).
+    """
+    oid = _safe_object_id(doc_id)
+    return {"_id": oid} if oid is not None else {"_id": doc_id}
+
+
 def _user_id_filter(uid: str) -> dict:
     """Build a Mongo `_id` filter for a user id that may not be a valid
     ObjectId — e.g. SQLite-backed users (plain UUID string _id) or the
     env-admin fallback user ("admin_user_001") created in get_optional_user()
     when the DB is unreachable. Mirrors the ObjectId-then-raw-string fallback
     already used there."""
-    oid = _safe_object_id(uid)
-    return {"_id": oid} if oid is not None else {"_id": uid}
+    return _doc_id_filter(uid)
 
 
 def _get_limited_chat_session(session_id: str, user_id: str) -> Optional[Dict[str, object]]:
@@ -2351,7 +2360,7 @@ async def github_authorize_repos(
     body: AuthorizeReposBody, user: dict = Depends(get_current_user)
 ):
     await get_db().users.update_one(
-        {"_id": ObjectId(user["_id"])}, {"$set": {"authorized_repos": body.repo_names}}
+        _user_id_filter(user["_id"]), {"$set": {"authorized_repos": body.repo_names}}
     )
     await log_activity(
         "auth", f"User updated authorized repos: {len(body.repo_names)} repos"
@@ -5034,6 +5043,14 @@ async def _build_provider_router(
     return router, policy, primary
 
 
+# Shown in chat when every provider and the brain-failover chain failed. It is
+# an outage, not a server bug, so say so rather than "Internal server error".
+_NO_LLM_PROVIDER_DETAIL = (
+    "No LLM provider is reachable right now — every configured provider failed. "
+    "Check Settings → AI models & providers, then try again."
+)
+
+
 async def call_llm(
     messages: list[dict],
     *,
@@ -5142,12 +5159,12 @@ async def call_llm(
                 failover_exc,
             )
             raise HTTPException(
-                status_code=503, detail="Internal server error"
+                status_code=503, detail=_NO_LLM_PROVIDER_DETAIL
             ) from failover_exc
         except Exception as failover_exc:  # noqa: BLE001 — never mask the original
             log.exception("brain-failover chain failed: %s", failover_exc)
             raise HTTPException(
-                status_code=503, detail="Internal server error"
+                status_code=503, detail=_NO_LLM_PROVIDER_DETAIL
             ) from failover_exc
         log.info(
             "brain-failover chain recovered the call via %s/%s",
@@ -6196,7 +6213,7 @@ async def ingest_source(
             ]
         )
         await get_db().sources.update_one(
-            {"_id": ObjectId(source_id)},
+            _doc_id_filter(source_id),
             {"$set": {"status": "processed", "summary": summary}},
         )
         await log_activity(
@@ -6207,7 +6224,7 @@ async def ingest_source(
         )
     except Exception as e:
         await get_db().sources.update_one(
-            {"_id": ObjectId(source_id)},
+            _doc_id_filter(source_id),
             {"$set": {"status": "failed", "summary": f"Processing failed: {e}"}},
         )
     doc["_id"] = source_id
@@ -6227,7 +6244,7 @@ async def list_sources(user: dict = Depends(get_current_user)):
 
 @app.get("/api/sources/{source_id}")
 async def get_source(source_id: str, user: dict = Depends(get_current_user)):
-    source = await get_db().sources.find_one({"_id": ObjectId(source_id)})
+    source = await get_db().sources.find_one(_doc_id_filter(source_id))
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
     source["_id"] = str(source["_id"])
@@ -6236,7 +6253,7 @@ async def get_source(source_id: str, user: dict = Depends(get_current_user)):
 
 @app.delete("/api/sources/{source_id}")
 async def delete_source(source_id: str, user: dict = Depends(get_current_user)):
-    await get_db().sources.delete_one({"_id": ObjectId(source_id)})
+    await get_db().sources.delete_one(_doc_id_filter(source_id))
     return {"ok": True}
 
 
@@ -11058,8 +11075,8 @@ async def workflow_orchestrator_approve(
         )
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail="Internal server error")
+    except ValueError:
+        raise HTTPException(status_code=409, detail="Run is not awaiting approval")
 
 
 

@@ -102,3 +102,14 @@ def test_sprint_metrics_fields(client, auth_headers):
     metrics = sprint["metrics"]
     for field in ("total_points", "completed_points", "health", "days_remaining", "completion_percentage", "burndown_rate"):
         assert field in metrics, f"Missing metrics field: {field}"
+
+
+def test_starting_an_active_sprint_explains_why_it_failed(client, auth_headers):
+    """Regression: this 400 used to read "Internal server error"."""
+    create = client.post("/api/agile/sprints", json={"name": "Twice"}, headers=auth_headers)
+    sprint_id = create.json()["data"]["sprint_id"]
+    assert client.post(f"/api/agile/sprints/{sprint_id}/start", json={}, headers=auth_headers).status_code == 200
+
+    again = client.post(f"/api/agile/sprints/{sprint_id}/start", json={}, headers=auth_headers)
+    assert again.status_code == 400
+    assert again.json()["detail"] == "Cannot start a sprint that is active"
