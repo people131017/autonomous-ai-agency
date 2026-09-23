@@ -235,7 +235,7 @@ async def create_task(body: TaskCreateRequest, request: Request, user: Any = Dep
     try:
         await workflow.create_task(task, actor=_user_id(user))
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     _invalidate_task_caches(user_id=_user_id(user))
@@ -404,7 +404,7 @@ async def update_task(task_id: str, body: TaskUpdateRequest, request: Request, u
                 pending_agent_run=True if body.status is TaskStatus.IN_PROGRESS else None,
             )
         except TaskRuleError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            raise HTTPException(status_code=400, detail=exc.user_message) from exc
         except ValueError as exc:
             raise HTTPException(status_code=400, detail="Invalid task request") from exc
 
@@ -486,7 +486,7 @@ async def add_comment(
         else:
             comment = workflow.add_comment(task, author=actor, body=body.body, reply_to=body.reply_to)
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     await store.update(task)
@@ -513,7 +513,7 @@ async def approve_checkpoint(task_id: str, body: ApprovalRequest, request: Reque
             reason=body.reason,
         )
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     await store.update(task)
@@ -541,7 +541,7 @@ async def approve_execution(
     try:
         workflow.approve_execution(task, actor=actor, approved=body.approve, reason=body.reason)
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     await store.update(task)
@@ -558,7 +558,7 @@ async def retry_task(task_id: str, request: Request, user: Any = Depends(_curren
     try:
         workflow.retry(task, actor=actor)
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     await store.update(task)
@@ -621,7 +621,7 @@ async def follow_up_task(
             model_preference=body.model_preference,
         )
     except TaskRuleError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exc.user_message) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid task request") from exc
     await store.update(task)

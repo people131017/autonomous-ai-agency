@@ -2,7 +2,25 @@
 
 **Updated:** 2026-09-23
 
-## Current state
+## QA pass 2026-09-23 (branch `claude/autonomous-agency-qa-bugs-ut12ye`)
+
+Live QA against a SQLite backend: route map vs every frontend call, anonymous probe of
+every route, Playwright crawl + click-through of all 19 screens, status and schema
+fuzzing. Fixed and tested: six routers and the OpenClaw pairing token open to anonymous
+callers; `/api/activity` decorator on the unauthenticated impl; SQLite ignoring
+projections (`secret_hash` leak); People & access hiding new sign-ups; ObjectId-on-UUID
+500s (sources, authorize-repos); company domain 500; "Internal server error" on 4xx
+rule violations and provider outages; Doctor "Fix all" hitting a nonexistent endpoint;
+`wont_do` handling; 422 detail arrays crashing error banners.
+
+**Not done (judgement calls, raise with a human):** `/api/scheduler/tick` fails open when
+`CRON_SECRET` is unset; `/api/autonomy/tick` and `/api/doctor` are anonymous by design
+(GitHub workflow / optional auth); `/api/setup/detect/models?ollama_url=` fetches a
+caller-supplied URL pre-auth (setup wizard needs localhost); unconfigured OAuth buttons
+land on a raw 503; 19 admin-only `detail=f"...{exc}"` sites remain; dead `api.js`
+wrappers for `/api/hardware/*`, `/api/sync/*`, `/api/github/repos/*/workspace/*`.
+
+## Previous state
 
 Cleanup session 2026-09-23 (branch `claude/cleanup-open-prs-issues-kdzv7g`): drove every
 open PR and issue to closed.

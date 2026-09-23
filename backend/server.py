@@ -6260,7 +6260,6 @@ async def delete_source(source_id: str, user: dict = Depends(get_current_user)):
 # ─── Activity & Stats ──────────────────────────────────────────────────────────
 
 
-@app.get("/api/activity")
 async def _get_activity_impl(limit: int = 50) -> dict[str, Any]:
     logs = []
     try:
@@ -6343,6 +6342,9 @@ async def _get_activity_impl(limit: int = 50) -> dict[str, Any]:
     return {"logs": logs, "events": logs, "activity": logs, "items": logs, "activities": logs}
 
 
+# The decorator used to sit on _get_activity_impl, leaving this authenticated,
+# cached wrapper dead and the feed (run prompts, errors) readable anonymously.
+@app.get("/api/activity")
 async def get_activity(limit: int = 50, user: dict = Depends(get_current_user)):
     return await _cached(f"activity:{limit}", ttl_s=3, producer=lambda: _get_activity_impl(limit))
 

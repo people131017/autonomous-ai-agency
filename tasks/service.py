@@ -22,6 +22,10 @@ log = logging.getLogger("qwen-proxy")
 class TaskRuleError(ValueError):
     """A request broke a task workflow rule; the message is safe to show users."""
 
+    @property
+    def user_message(self) -> str:
+        return str(self.args[0]) if self.args else "Invalid task request"
+
 # Self-repo task types that should ship real code (commit + PR) rather than
 # stay report-only. Portfolio-materialized initiatives and GitHub-issue
 # ceo_direct tasks are meant to result in shipped fixes/features. The
