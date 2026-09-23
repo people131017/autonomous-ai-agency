@@ -581,6 +581,11 @@ async def store_secret_during_setup(request: Request):
     """
     try:
         body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Request body must be JSON")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="name and value are required")
+    try:
         name = body.get("name")
         value = body.get("value")
         description = body.get("description", "")
@@ -601,6 +606,7 @@ async def store_secret_during_setup(request: Request):
         return {"id": rec.secret_id, "name": rec.name}
     except HTTPException:
         raise
-    except Exception as e:
-        log.error(f"Failed to store secret during setup: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to store secret: {str(e)}")
+    except Exception:
+        # Unauthenticated surface: never echo the exception to the caller (rule 27).
+        log.exception("Failed to store secret during setup")
+        raise HTTPException(status_code=500, detail="Failed to store secret")

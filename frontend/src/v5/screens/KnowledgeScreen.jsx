@@ -531,7 +531,7 @@ function KnowledgeScreen() {
       setShowNewDoc(false); setNewDocTitle(''); setNewDocBody('');
       refetch();
     } catch (err) {
-      alert('Could not create doc: ' + (err?.response?.data?.detail || err.message));
+      alert('Could not create doc: ' + (api.fmtErr(err?.response?.data?.detail) || err.message));
     } finally { setNewDocSaving(false); }
   };
 
