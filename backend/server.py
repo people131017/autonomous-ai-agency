@@ -7850,11 +7850,13 @@ _OPENCLAW_GATEWAY_PORT = 18789
 
 
 @app.get("/api/openclaw/status")
-async def openclaw_status() -> dict:
+async def openclaw_status(user: dict = Depends(get_current_user)) -> dict:
     """Return the OpenClaw Gateway integration status + pairing QR data.
 
     The gateway is an in-process WebSocket server (no external CLI needed).
+    Admin-only: ``qr_payload`` carries the full pairing token.
     """
+    _require_admin(user)
     import os as _os
     from services.openclaw_gateway import is_gateway_alive
 
@@ -7898,8 +7900,14 @@ def _openclaw_instructions(external_url: str, ws_url: str, pairing_token: str) -
 
 
 @app.get("/api/openclaw/qr")
-async def openclaw_qr() -> dict:
-    """Return a QR-code-compatible payload for pairing."""
+async def openclaw_qr(user: dict = Depends(get_current_user)) -> dict:
+    """Return a QR-code-compatible payload for pairing.
+
+    Authenticated: the payload carries the full pairing token, which is the only
+    credential /api/openclaw/command and /openclaw/ws check, and it grants
+    repo file reads — so admin-only, not merely signed in.
+    """
+    _require_admin(user)
     import os as _os
     external_url = _os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8001")
     gateway_url = f"{external_url}/openclaw"
@@ -10827,7 +10835,10 @@ async def get_doctor_diagnostics(
 
 
 # ─── Feature Routers ────────────────────────────────────────────────────────────
-app.include_router(agent_router)
+# The agents, runtimes, secrets, portfolio, agile and v4 routers read
+# request.state.user but never required it, so anonymous callers could create
+# agents, stop every runtime or delete initiatives. The gate lives here (rule 10).
+app.include_router(agent_router,dependencies=[Depends(get_current_user)])
 # Local GLM-5.2 brain cross-machine toggle (admin SPA <-> local daemon).
 # Three endpoints, all gated on SERVICE_TOKEN via require_service_token.
 # See backend/local_brain_router.py for surface + body shapes.
@@ -10895,20 +10906,20 @@ try:
 except Exception as _llm_router_err:  # noqa: BLE001 - must not block startup
     log.warning("LLM router API not mounted: %s", _llm_router_err, exc_info=True)
 
-app.include_router(runtime_router)
+app.include_router(runtime_router, dependencies=[Depends(get_current_user)])
 app.include_router(task_router)
 app.include_router(schedules_router, dependencies=[Depends(get_current_user)])
 app.include_router(setup_router)
 app.include_router(activation_router)
-app.include_router(secrets_router)
+app.include_router(secrets_router, dependencies=[Depends(get_current_user)])
 
 # Portfolio + Agile board API (powers the v5 PortfolioScreen)
 from agents.portfolio_api import portfolio_router
-app.include_router(portfolio_router)
+app.include_router(portfolio_router, dependencies=[Depends(get_current_user)])
 
 try:
     from agents.agile_api import agile_router
-    app.include_router(agile_router)
+    app.include_router(agile_router, dependencies=[Depends(get_current_user)])
     log.info("Agile sprints API mounted at /api/agile")
 except Exception as _agile_err:
     log.warning("Agile API not mounted: %s", _agile_err, exc_info=True)
@@ -10916,7 +10927,7 @@ except Exception as _agile_err:
 # v4 Dashboard API - powers the Continuous Improvement Dashboard at
 # autonomous-ai-agency.strikersam.workers.dev
 from backend.v4_api import v4_router
-app.include_router(v4_router)
+app.include_router(v4_router, dependencies=[Depends(get_current_user)])
 log.info("v4 Dashboard API mounted at /v4")
 
 # Company Graph API

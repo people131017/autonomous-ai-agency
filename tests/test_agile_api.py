@@ -20,8 +20,12 @@ def auth_headers(client):
     return {}
 
 
-def test_list_sprints_empty(client):
-    resp = client.get("/api/agile/sprints")
+def test_list_sprints_requires_auth(client):
+    assert client.get("/api/agile/sprints").status_code == 401
+
+
+def test_list_sprints_empty(client, auth_headers):
+    resp = client.get("/api/agile/sprints", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["ok"] is True
@@ -44,7 +48,7 @@ def test_create_and_list_sprint(client, auth_headers):
     assert sprint["status"] == "planning"
     sprint_id = sprint["sprint_id"]
 
-    list_resp = client.get("/api/agile/sprints")
+    list_resp = client.get("/api/agile/sprints", headers=auth_headers)
     assert list_resp.status_code == 200
     ids = [s["sprint_id"] for s in list_resp.json()["data"]]
     assert sprint_id in ids
@@ -74,8 +78,8 @@ def test_complete_sprint(client, auth_headers):
     assert complete.json()["data"]["sprint"]["status"] == "completed"
 
 
-def test_velocity(client):
-    resp = client.get("/api/agile/velocity")
+def test_velocity(client, auth_headers):
+    resp = client.get("/api/agile/velocity", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert "predicted_velocity" in data
