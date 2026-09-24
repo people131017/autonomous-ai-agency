@@ -1,8 +1,38 @@
 # Next Action
 
-**Updated:** 2026-09-23
+**Updated:** 2026-09-24
 
-## Current state
+## Current state (2026-09-24)
+
+Daily automation: session start had zero open PRs and zero `routine-backlog`
+issues (clean slate after 2026-09-23's cleanup). Picked up the "next daily
+run" pointer below about cost-tracker catalog-coverage gaps, cross-checked
+every model id in `config/models.yaml` against `packages/ai/cost_tracker.py`,
+and found a real bug: TokenIn (a fully free gateway) had no entries in the
+cost table at all, so two of its ten `myt/*-free` ids
+(`myt/claude-opus-4-8-free`, `myt/gpt-5.6-sol-free`) were fuzzy-matched by
+`cost_for_tokens()`'s substring fallback to the paid `claude-opus-4-8` and
+`gpt-5.6-sol` entries — free traffic billed at $5+/MTok in cost attribution.
+Fixed with explicit `(0.0, 0.0)` entries for all ten TokenIn ids. PR
+[#1566](https://github.com/strikersam/autonomous-ai-agency/pull/1566),
+see active-tasks.md row 78 for full verification detail.
+
+**Also today (2026-09-24), same branch/PR:** a second, concurrent
+daily-automation session (deterministic `routine/daily-YYYY-MM-DD` branch
+naming collided — not a duplicate pick of the same work) independently
+added Claude Opus 5.5 (`claude-opus-5-5`, released 2026-09-22, $4/$20 per
+MTok, 20% cheaper than Opus 5) to `config/llm/models.yaml`,
+`packages/ai/cost_tracker.py`, `config/models.yaml` (first Anthropic
+candidate, new planner/judge preset), and `packages/ai/brain_config.py`
+(mirrored per rule 4), plus a new `TestCandidatesAreDeclaredInLlmCatalog`
+CI invariant. See active-tasks.md row 79. Reconciled on discovery: fetched
+the combined branch, verified no file-level conflict with the TokenIn fix,
+and re-ran the full relevant check set on the merged tree — 118/118 tests
+pass, `compileall` clean, `check_changelog_parity.py` PARITY OK,
+`check_model_catalog_consistency.py` 75 ids/no drift. PR #1566 now carries
+both changes. Watching for CI.
+
+## Prior state (2026-09-23)
 
 Cleanup session 2026-09-23 (branch `claude/cleanup-open-prs-issues-kdzv7g`): drove every
 open PR and issue to closed.
@@ -35,11 +65,31 @@ open PR and issue to closed.
 - `.gitattributes` merge strategies for the tracker files and the graph report;
   `.claude/hooks/git-merge-drivers` registers the driver at SessionStart.
 
-## Next daily run (2026-09-24)
+## Next daily run (2026-09-25)
 
-- Check for new models from DeepSeek, Google, Groq, Anthropic.
+- Watch PR #1566 to green/merge (see rows 78 and 79 in active-tasks.md — it now
+  carries two independent changes from two concurrent daily-automation sessions).
+- **Branch-naming collision:** two daily-automation sessions ran the same day and
+  both used the deterministic `routine/daily-2026-09-24` branch name, so their
+  commits interleaved on one branch/PR instead of getting separate PRs. If the
+  same trigger is firing more than once a day (or two triggers point at the same
+  routine), consider suffixing the branch name with a short session id
+  (`routine/daily-2026-09-24-<suffix>`) to avoid this recurring.
+- Check for new models from DeepSeek, Google, Groq, Anthropic, NVIDIA NIM
+  (Nemotron 4 family rumoured); Claude Sonnet 5.5 / Haiku 5.5 (Anthropic said
+  "coming in the coming weeks" alongside Opus 5.5).
+- Consider updating `role_presets` for the `aerolink` provider (still uses
+  `claude-opus-5` as planner/judge — Opus 5.5 is cheaper and available via
+  Aerolink too).
+- Consider a general `TestNoFuzzyCollisionWithPaidModels`-style invariant in
+  `tests/test_cost_attribution.py`: for every id in `_DEFAULT_COST_TABLE` at
+  `(0.0, 0.0)`, assert no *other* table key's fuzzy substring match would
+  return a nonzero cost for it — would have caught today's TokenIn bug (and
+  any future one of the same shape) without needing to spot it by hand.
 - Consider a `TestPaidModelsCostTrackerCoverage`-style invariant for models in routing candidates but absent from the llm catalog.
 - Consider extending `TestTheCopiesMayNotDriftFurther`-style CI feedback earlier: a
   pre-commit or PR-description checklist item for "if you touch a reconciled provider's
   candidates in `config/models.yaml`, also update `packages/ai/brain_config.py`" would
-  have caught today's bug before it ever reached CI.
+  have caught a prior day's bug before it ever reached CI.
+- Row 50 (provider/model source-of-truth + admin UI): still IN_PROGRESS, P1-P4
+  remain; requires full backend deps in the sandbox.
