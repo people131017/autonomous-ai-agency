@@ -45,7 +45,25 @@ services:
       # The admin turned off #2 but #1 was still on, blocking all social users.
       - key: ACTIVATION_REQUIRED
         value: "false"
-
+    # ===== 텔레그램봇을 웹서버 안에 숨기기 (무료 요금제용) =====
+    - key: RUN_TELEGRAM_BOT
+      value: "true"
+    - key: BOT_KEEPALIVE
+      value: "true"
+    - key: FREEBUFF_EMBEDDED
+      value: "true"
+    - key: TELEGRAM_BOT_TOKEN
+      sync: false
+    - key: TELEGRAM_CHAT_ID
+      sync: false
+    - key: TELEGRAM_ALLOWED_USER_IDS
+      sync: false
+    - key: TELEGRAM_ADMIN_USER_IDS
+      sync: false
+    - key: GITHUB_TOKEN
+      sync: false
+    - key: NVIDIA_API_KEY
+      sync: false
       # ================================================================
       # Website-scanner headless rendering — OFF on the 512MB free dyno.
       # Chromium adds 150-300MB across processes; on this instance size a
@@ -656,8 +674,7 @@ services:
   # A separate worker service so task execution continues even when the web
   # service is sleeping on the free tier.  Switch the web service
   # RUN_BACKGROUND_IN_WEB to "false" once this worker is active and healthy.
-  - type: worker
-    name: local-llm-server-worker
+
     env: docker
     dockerfilePath: ./Dockerfile.backend
     plan: free
@@ -819,8 +836,6 @@ services:
   # in-process (embedded mode): clones the repo, edits it on free NVIDIA NIM
   # models, and opens a draft PR. No web port — works behind any network.
   # Set the *sync:false* secrets in the Render dashboard before first deploy.
-  - type: worker
-    name: freebuff-telegram-bot
     env: docker
     dockerfilePath: ./Dockerfile.telegram
     plan: free
