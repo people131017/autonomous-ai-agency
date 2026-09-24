@@ -661,7 +661,6 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile.backend
     plan: free
-    startCommand: python worker_main.py
     envVars:
       - key: MONGO_URL
         sync: false
